@@ -1,0 +1,441 @@
+basePath: /
+definitions:
+  domain.AnalyticsTasksResponse:
+    properties:
+      average_execution_time:
+        type: string
+      report_last_period:
+        $ref: '#/definitions/domain.ReportPeriod'
+      status_counts:
+        additionalProperties:
+          type: integer
+        type: object
+    type: object
+  domain.CreateTaskRequest:
+    properties:
+      description:
+        example: info
+        type: string
+      due_date:
+        example: "2025-05-03T00:00:00Z"
+        type: string
+      priority:
+        example: low
+        type: string
+      status:
+        example: pending
+        type: string
+      title:
+        example: task 1
+        type: string
+    type: object
+  domain.Priority:
+    enum:
+    - low
+    - medium
+    - high
+    type: string
+    x-enum-comments:
+      PriorityHigh: Задача с высоким приоритетом.
+      PriorityLow: Задача с низким приоритетом.
+      PriorityMedium: Задача с средним приоритетом.
+    x-enum-varnames:
+    - PriorityLow
+    - PriorityMedium
+    - PriorityHigh
+  domain.ReportPeriod:
+    properties:
+      completed_tasks:
+        type: integer
+      overdue_tasks:
+        type: integer
+    type: object
+  domain.Status:
+    enum:
+    - pending
+    - in_progress
+    - done
+    type: string
+    x-enum-comments:
+      StatusDone: Задача выполнена.
+      StatusInProgress: Задача в процессе выполнения.
+      StatusPending: Задача в ожидании, еще не начата.
+    x-enum-varnames:
+    - StatusPending
+    - StatusInProgress
+    - StatusDone
+  domain.Task:
+    properties:
+      created_at:
+        description: Дата создания задачи в базе данных.
+        type: string
+      description:
+        description: Описание задачи (опционально).
+        type: string
+      due_date:
+        description: Дата завершения задачи.
+        type: string
+      id:
+        description: Уникальный идентификатор задачи в базе данных (auto increment).
+        type: integer
+      priority:
+        allOf:
+        - $ref: '#/definitions/domain.Priority'
+        description: 'Приоритет задачи (значения: low, medium, high).'
+      status:
+        allOf:
+        - $ref: '#/definitions/domain.Status'
+        description: 'Статус задачи (значения: pending, in_progress, done).'
+      title:
+        description: Название задачи.
+        type: string
+      updated_at:
+        description: Дата последнего обновления задачи в базе данных.
+        type: string
+    type: object
+  domain.User:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+host: localhost:8085
+info:
+  contact: {}
+  description: API для управления задачами
+  title: GoTasker API
+  version: "1.0"
+paths:
+  /analytics:
+    get:
+      description: Возвращает аналитические данные по задачам
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.AnalyticsTasksResponse'
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - bearerAuth: []
+      summary: Получение аналитики
+      tags:
+      - Аналитика
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Авторизует пользователя и возвращает токены доступа
+      parameters:
+      - description: Учетные данные пользователя
+        in: body
+        name: credentials
+        required: true
+        schema:
+          $ref: '#/definitions/domain.User'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Токены доступа
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Ошибка валидации
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Неверные учетные данные
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Авторизация пользователя
+      tags:
+      - Аутентификация
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      description: Регистрирует нового пользователя в системе
+      parameters:
+      - description: Данные пользователя
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/domain.User'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Пользователь успешно зарегистрирован
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Ошибка валидации
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "409":
+          description: Email уже используется
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Регистрация нового пользователя
+      tags:
+      - Аутентификация
+  /tasks:
+    get:
+      description: Возвращает список всех задач с возможностью фильтрации
+      parameters:
+      - description: Фильтр по статусу
+        in: query
+        name: status
+        type: string
+      - description: Фильтр по приоритету
+        in: query
+        name: priority
+        type: string
+      - description: Фильтр по дате завершения
+        in: query
+        name: due_date
+        type: string
+      - description: Фильтр по названию
+        in: query
+        name: title
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.Task'
+            type: array
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - bearerAuth: []
+      summary: Получение списка задач
+      tags:
+      - Задачи
+    post:
+      consumes:
+      - application/json
+      description: Создает новую задачу с указанными параметрами
+      parameters:
+      - description: Параметры задачи
+        in: body
+        name: task
+        required: true
+        schema:
+          $ref: '#/definitions/domain.CreateTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/domain.Task'
+        "400":
+          description: Ошибка валидации
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - bearerAuth: []
+      summary: Создание новой задачи
+      tags:
+      - Задачи
+  /tasks/{id}:
+    delete:
+      description: Удаляет задачу по ID
+      parameters:
+      - description: ID задачи
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: Задача успешно удалена
+        "400":
+          description: Ошибка валидации
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Задача не найдена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - bearerAuth: []
+      summary: Удаление задачи
+      tags:
+      - Задачи
+    put:
+      consumes:
+      - application/json
+      description: Обновляет существующую задачу по ID
+      parameters:
+      - description: ID задачи
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Обновленные параметры задачи
+        in: body
+        name: task
+        required: true
+        schema:
+          $ref: '#/definitions/domain.CreateTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/domain.Task'
+        "400":
+          description: Ошибка валидации
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Задача не найдена
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - bearerAuth: []
+      summary: Обновление задачи
+      tags:
+      - Задачи
+  /tasks/export:
+    get:
+      description: Экспортирует все задачи в JSON файл
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/domain.Task'
+            type: array
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - bearerAuth: []
+      summary: Экспорт задач
+      tags:
+      - Задачи
+  /tasks/import:
+    post:
+      consumes:
+      - multipart/form-data
+      description: Импортирует задачи из JSON файла
+      parameters:
+      - description: JSON файл с задачами
+        in: formData
+        name: file
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Результат импорта
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Ошибка в файле
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - bearerAuth: []
+      summary: Импорт задач
+      tags:
+      - Задачи
+securityDefinitions:
+  bearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
