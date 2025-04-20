@@ -24,7 +24,7 @@ GoTasker - это веб-приложение для управления зад
 - Redis 6+
 - Docker и Docker Compose (для контейнеризации)
 
-## Установка и запуск
+## Установка и запуск на OC Windows (для других OC команды могут отличаться)
 
 ### Локальная разработка
 1. Клонируйте репозиторий:
@@ -63,7 +63,14 @@ LOG_FILE=logs/app.log
 ENVIRONMENT=development
 ```
 
-3. Запустите приложение:
+4. Выполните эти команды для запуска PostgreSQL контейнер с миграциями вручную:
+
+```bash
+docker run --rm --name postgres -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=postgres -p 5432:5432 -d postgres:14
+docker run --rm --link postgres:postgres -v ${PWD}/migrations:/migrations migrate/migrate -path=/migrations -database "postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable" up
+```
+
+5. Запустите приложение:
 ```bash
 go mod download
 go run cmd/app/main.go
